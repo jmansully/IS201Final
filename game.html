@@ -1,0 +1,252 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Number Guessing Game</title>
+  <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
+  <style>
+    body {
+      font-family: 'Gill Sans', 'Gill Sans MT', Calibri, 'Trebuchet MS', sans-serif;
+      text-align: center;
+      margin-top: 30px;
+      background: #f0f0f0;
+      transition: background 0.5s;
+    }
+    h1 {
+      font-size: 4em;
+    }
+    .rainbow {
+      background: linear-gradient(to right, red, orange, yellow, green, blue, indigo, violet);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      animation: rainbow 5s linear infinite;
+    }
+    @keyframes rainbow {
+      0% { filter: hue-rotate(0deg); }
+      100% { filter: hue-rotate(360deg); }
+    }
+    input, button, select {
+      padding: 15px;
+      font-size: 1.5em;
+      margin: 10px;
+    }
+    #message {
+      margin-top: 20px;
+      font-size: 4em;
+    }
+    #message strong {
+      color: gold;
+      animation: flash 1s infinite;
+    }
+    @keyframes flash {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.3; }
+    }
+    #confetti {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      pointer-events: none;
+      z-index: 9999;
+    }
+    p {
+      font-size: 1.5em;
+    }
+    #gameOver {
+      display: none;
+      font-size: 3em;
+      color: yellow;
+      font-family: 'Press Start 2P', cursive;
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      z-index: 10000;
+    }
+    #tryAgainBtn {
+      position: fixed;
+      bottom: 20px;
+      right: 20px;
+      padding: 10px 20px;
+      font-size: 1em;
+      display: none;
+      z-index: 10001;
+      background-color: white;
+      border: 2px solid black;
+      border-radius: 5px;
+      cursor: pointer;
+    }
+  </style>
+</head>
+<body>
+  <h1 id="title">Number Guessing Game</h1>
+
+  <div id="game">
+    <label for="difficulty">Choose difficulty:</label>
+    <select id="difficulty" onchange="setDifficulty()">
+      <option value="easy">Easy</option>
+      <option value="medium">Medium</option>
+      <option value="hard">Hard</option>
+    </select><br>
+
+    <p>Guess a number between <span id="min">1</span> and <span id="max">100</span></p>
+    <input type="number" id="guess" placeholder="Enter your guess">
+    <button onclick="makeGuess()">Submit</button>
+    <div id="message"></div>
+    <p>Guesses this round: <span id="guesses">0</span></p>
+    <p>Best round: <span id="best">-</span></p>
+    <button onclick="resetGame()">Try Again</button>
+  </div>
+
+  <div id="gameOver">GAME OVER</div>
+  <button id="tryAgainBtn" onclick="resetGame()">Try Again</button>
+  <canvas id="confetti"></canvas>
+
+  <script>
+    let number;
+    let guesses = 0;
+    let best = null;
+    let confettiActive = false;
+    let confettiAnimation;
+    let maxGuesses = Infinity;
+    let minRange = 1;
+    let maxRange = 100;
+    let difficulty = 'easy';
+
+    function setDifficulty() {
+      difficulty = document.getElementById('difficulty').value;
+      if (difficulty === 'easy') {
+        minRange = 1;
+        maxRange = 100;
+        maxGuesses = Infinity;
+      } else if (difficulty === 'medium') {
+        minRange = 1;
+        maxRange = 100;
+        maxGuesses = 15;
+      } else {
+        minRange = 1;
+        maxRange = 500;
+        maxGuesses = 10;
+      }
+      document.getElementById('min').textContent = minRange;
+      document.getElementById('max').textContent = maxRange;
+      resetGame();
+    }
+
+    function makeGuess() {
+      const input = document.getElementById('guess');
+      const message = document.getElementById('message');
+      const value = Number(input.value);
+
+      if (!value || value < minRange || value > maxRange) {
+        message.textContent = `Enter a number between ${minRange} and ${maxRange}`;
+        return;
+      }
+
+      guesses++;
+      document.getElementById('guesses').textContent = guesses;
+
+      if (value === number) {
+        message.innerHTML = "<strong>YOU WON!</strong>";
+        document.getElementById('title').classList.add('rainbow');
+        if (best === null || guesses < best) {
+          best = guesses;
+          document.getElementById('best').textContent = best;
+        }
+        launchConfetti();
+      } else {
+        let feedback = value < number ? "Higher!" : "Lower!";
+        if (difficulty === 'easy') {
+          let rangeDiff = Math.abs(value - number);
+          if (rangeDiff <= 3) feedback += " You're very close!";
+        } else {
+          let remaining = maxGuesses - guesses;
+          feedback += ` (${remaining} guess${remaining === 1 ? '' : 'es'} left)`;
+        }
+        message.textContent = feedback;
+
+        if (difficulty !== 'easy' && guesses >= maxGuesses) {
+          gameOver();
+        }
+      }
+    }
+
+    function gameOver() {
+      document.getElementById('game').style.display = 'none';
+      document.getElementById('gameOver').style.display = 'block';
+      document.getElementById('tryAgainBtn').style.display = 'block';
+      document.body.style.background = 'black';
+    }
+
+    function resetGame() {
+      number = Math.floor(Math.random() * (maxRange - minRange + 1)) + minRange;
+      guesses = 0;
+      document.getElementById('guesses').textContent = guesses;
+      document.getElementById('message').textContent = "";
+      document.getElementById('guess').value = "";
+      document.getElementById('title').classList.remove('rainbow');
+      document.getElementById('game').style.display = 'block';
+      document.getElementById('gameOver').style.display = 'none';
+      document.getElementById('tryAgainBtn').style.display = 'none';
+      document.body.style.background = '#f0f0f0';
+      stopConfetti();
+    }
+
+    function launchConfetti() {
+      const canvas = document.getElementById('confetti');
+      const ctx = canvas.getContext('2d');
+      canvas.width = window.innerWidth;
+      canvas.height = window.innerHeight;
+
+      let pieces = [];
+      for (let i = 0; i < 100; i++) {
+        pieces.push({
+          x: Math.random() * canvas.width,
+          y: Math.random() * canvas.height,
+          size: Math.random() * 10 + 5,
+          speed: Math.random() * 5 + 2,
+          color: `hsl(${Math.random() * 360}, 100%, 50%)`
+        });
+      }
+
+      function draw() {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        pieces.forEach(p => {
+          ctx.fillStyle = p.color;
+          ctx.beginPath();
+          ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+          ctx.fill();
+        });
+        update();
+        confettiAnimation = requestAnimationFrame(draw);
+      }
+
+      function update() {
+        pieces.forEach(p => {
+          p.y += p.speed;
+          if (p.y > canvas.height) p.y = -p.size;
+        });
+      }
+
+      confettiActive = true;
+      draw();
+    }
+
+    function stopConfetti() {
+      if (confettiActive) {
+        const canvas = document.getElementById('confetti');
+        const ctx = canvas.getContext('2d');
+        cancelAnimationFrame(confettiAnimation);
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        confettiActive = false;
+      }
+    }
+
+    // Initialize
+    setDifficulty();
+  </script>
+</body>
+</html>
